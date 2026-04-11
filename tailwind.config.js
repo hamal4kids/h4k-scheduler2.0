@@ -14,9 +14,10 @@ export default {
         },
       },
       fontFamily: {
-        fredoka:  ['"Fredoka One"', 'cursive'],
-        varela:   ['"Varela Round"', 'sans-serif'],
-        assistant: ['"Assistant"', 'sans-serif'],
+        fredoka: ['"Fredoka One"', 'cursive'],
+        rubik:   ['"Rubik"', 'sans-serif'],
+        varela:  ['"Rubik"', 'sans-serif'],
+        assistant: ['"Rubik"', 'sans-serif'],
       },
       borderRadius: {
         pill: '50px',
