@@ -1,6 +1,6 @@
 /**
  * Parse a raw CSV string into an array of objects.
- * Handles multi-line cells (newlines inside quoted fields).
+ * Handles multi-line cells and commas inside quoted fields.
  */
 export function parseCsv(raw) {
   const rows = splitCsvRows(raw.trim());
@@ -13,7 +13,8 @@ export function parseCsv(raw) {
 }
 
 /**
- * Split CSV into rows, respecting quoted fields that may contain newlines.
+ * Split raw CSV into row strings, preserving quotes so splitCsvLine
+ * can still identify quoted fields (and their embedded commas).
  */
 function splitCsvRows(raw) {
   const rows = [];
@@ -22,15 +23,15 @@ function splitCsvRows(raw) {
   for (let i = 0; i < raw.length; i++) {
     const ch = raw[i];
     if (ch === '"') {
-      // Handle escaped quotes ""
       if (inQuotes && raw[i + 1] === '"') {
-        current += '"';
+        current += '""';
         i++;
       } else {
         inQuotes = !inQuotes;
+        current += ch; // keep quote so splitCsvLine can parse correctly
       }
     } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
-      if (ch === '\r' && raw[i + 1] === '\n') i++; // skip \r\n
+      if (ch === '\r' && raw[i + 1] === '\n') i++;
       if (current.trim() !== '') rows.push(current);
       current = '';
     } else {
@@ -52,7 +53,7 @@ function splitCsvLine(line) {
         current += '"';
         i++;
       } else {
-        inQuotes = !inQuotes;
+        inQuotes = !inQuotes; // don't add quote char to value
       }
     } else if (ch === ',' && !inQuotes) {
       result.push(current);
