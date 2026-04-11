@@ -7,7 +7,7 @@ export default function Header({ lastSync, onRefresh, loading }) {
     <header className="bg-h4k-primary shadow-md">
       <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">🦁</span>
+          <img src="/h4k-scheduler2.0/logo.png" alt="H4K" className="w-10 h-10 object-contain" />
           <div>
             <h1 className="font-fredoka text-white text-2xl leading-none">H4K Scheduler</h1>
             <p className="font-assistant text-white/70 text-xs">חמ״ל לילדים — תזמון הודעות</p>

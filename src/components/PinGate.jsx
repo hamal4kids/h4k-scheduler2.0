@@ -18,7 +18,7 @@ export default function PinGate({ onUnlock }) {
   return (
     <div className="min-h-screen bg-h4k-bg flex flex-col items-center justify-center p-6">
       <div className="h4k-card w-full max-w-sm text-center">
-        <div className="text-5xl mb-4">🦁</div>
+        <img src="/h4k-scheduler2.0/logo.png" alt="H4K" className="w-24 h-24 object-contain mx-auto mb-4" />
         <h1 className="font-fredoka text-3xl text-h4k-primary mb-1">H4K Scheduler</h1>
         <p className="font-varela text-sm text-gray-500 mb-8">חמ״ל לילדים — מערכת תזמון</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
