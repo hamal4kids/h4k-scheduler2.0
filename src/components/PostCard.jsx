@@ -25,7 +25,7 @@ export default function PostCard({ post, groups, onSchedule, onCancel, onDelete 
         <img
           src={post.media_url}
           alt=""
-          className="w-full rounded-2xl object-cover max-h-56"
+          className="w-full rounded-2xl object-cover aspect-square"
           loading="lazy"
         />
       )}

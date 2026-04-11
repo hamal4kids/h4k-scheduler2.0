@@ -39,7 +39,7 @@ export default function ScheduledTab({ posts, groups, onRefresh }) {
 
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {scheduled.map(post => (
           <PostCard
             key={post.id}

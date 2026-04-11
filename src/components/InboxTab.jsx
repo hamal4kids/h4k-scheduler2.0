@@ -37,7 +37,7 @@ export default function InboxTab({ posts, groups, onRefresh }) {
 
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {inbox.map(post => (
           <PostCard
             key={post.id}
