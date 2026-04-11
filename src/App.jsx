@@ -24,9 +24,9 @@ export default function App() {
   if (!unlocked) return <PinGate onUnlock={handleUnlock} />;
 
   const counts = {
-    inbox:     posts.filter(p => p.status === 'inbox').length,
-    scheduled: posts.filter(p => p.status === 'scheduled').length,
-    sent:      posts.filter(p => p.status === 'sent').length,
+    inbox:     posts.filter(p => p.status?.trim().toLowerCase() === 'inbox').length,
+    scheduled: posts.filter(p => p.status?.trim().toLowerCase() === 'scheduled').length,
+    sent:      posts.filter(p => p.status?.trim().toLowerCase() === 'sent').length,
     groups:    groups.length,
   };
 

@@ -8,7 +8,7 @@ export default function InboxTab({ posts, groups, onRefresh }) {
   const [deletedIds, setDeletedIds] = useState(new Set());
 
   const inbox = posts
-    .filter(p => p.status === 'inbox' && !deletedIds.has(p.id));
+    .filter(p => p.status?.trim().toLowerCase() === 'inbox' && !deletedIds.has(p.id));
 
   async function handleDelete(post) {
     if (!confirm('למחוק פוסט זה?')) return;

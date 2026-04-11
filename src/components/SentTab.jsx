@@ -2,7 +2,7 @@ import PostCard from './PostCard';
 
 export default function SentTab({ posts, groups }) {
   const sent = posts
-    .filter(p => p.status === 'sent')
+    .filter(p => p.status?.trim().toLowerCase() === 'sent')
     .sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
 
   if (sent.length === 0) {

@@ -6,7 +6,7 @@ import { N8N_WEBHOOK_URL } from '../config';
 export default function ScheduledTab({ posts, groups, onRefresh }) {
   const [editModal, setEditModal] = useState(null);
   const scheduled = posts
-    .filter(p => p.status === 'scheduled')
+    .filter(p => p.status?.trim().toLowerCase() === 'scheduled')
     .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
 
   async function handleCancel(post) {
