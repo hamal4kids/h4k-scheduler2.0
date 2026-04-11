@@ -29,6 +29,7 @@ export default function ScheduleModal({ post, groups, onClose, onDone }) {
     try {
       const res = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'update',
           sheet: 'posts',
