@@ -6,5 +6,5 @@ export const SHEETS = {
   sent_log: `${BASE}?gid=2&single=true&output=csv`,
 };
 
-export const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK;
-export const APP_PIN         = import.meta.env.VITE_PIN;
+export const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK ?? '';
+export const APP_PIN         = import.meta.env.VITE_PIN ?? 'H4K2026';
