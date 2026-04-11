@@ -5,10 +5,14 @@ import { N8N_WEBHOOK_URL } from '../config';
 
 export default function InboxTab({ posts, groups, onRefresh }) {
   const [modal, setModal] = useState(null);
-  const inbox = posts.filter(p => p.status === 'inbox');
+  const [deletedIds, setDeletedIds] = useState(new Set());
+
+  const inbox = posts
+    .filter(p => p.status === 'inbox' && !deletedIds.has(p.id));
 
   async function handleDelete(post) {
     if (!confirm('למחוק פוסט זה?')) return;
+    setDeletedIds(prev => new Set([...prev, post.id]));
     try {
       await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
@@ -20,8 +24,8 @@ export default function InboxTab({ posts, groups, onRefresh }) {
           fields: { status: 'archived' },
         }),
       });
-      onRefresh();
     } catch {
+      setDeletedIds(prev => { const n = new Set(prev); n.delete(post.id); return n; });
       alert('שגיאה במחיקת הפוסט');
     }
   }

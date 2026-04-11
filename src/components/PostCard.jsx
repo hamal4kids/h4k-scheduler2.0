@@ -56,21 +56,19 @@ export default function PostCard({ post, groups, onSchedule, onCancel, onDelete 
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap mt-1">
         {onSchedule && (
-          <button onClick={() => onSchedule(post)} className="btn-primary text-sm px-4 py-2">
+          <button onClick={() => onSchedule(post)} className="btn-primary">
             <span>🕐</span> תזמן
           </button>
         )}
         {onCancel && (
-          <button onClick={() => onCancel(post)} className="btn-ghost text-sm px-4 py-2">
+          <button onClick={() => onCancel(post)} className="btn-ghost">
             <span>↩️</span> בטל תזמון
           </button>
         )}
         {onDelete && (
-          <button onClick={() => onDelete(post)}
-            className="text-sm px-4 py-2 rounded-pill font-fredoka flex items-center gap-2
-                       text-red-400 border border-red-200 hover:bg-red-50 transition-all cursor-pointer">
+          <button onClick={() => onDelete(post)} className="btn-ghost" style={{color:'#ef4444', borderColor:'#fca5a5'}}>
             <span>🗑️</span> מחק
           </button>
         )}

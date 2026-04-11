@@ -38,7 +38,7 @@ export default function App() {
       <main className="max-w-4xl mx-auto w-full px-4 py-6 flex-1">
         {loading && (
           <div className="text-center py-20">
-            <div className="text-4xl mb-3 animate-bounce">🦁</div>
+            <img src="/h4k-scheduler2.0/logo.png" alt="H4K" className="w-16 h-16 object-contain mx-auto mb-3 animate-bounce" />
             <p className="font-varela text-gray-500">טוען נתונים...</p>
           </div>
         )}
