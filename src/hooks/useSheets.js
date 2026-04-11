@@ -3,7 +3,7 @@ import { SHEETS } from '../config';
 import { parseCsv } from '../utils/csv';
 
 async function fetchSheet(url) {
-  const res = await fetch(url);
+  const res = await fetch(`${url}&t=${Date.now()}`);
   if (!res.ok) throw new Error(`Failed to fetch ${url}`);
   const text = await res.text();
   return parseCsv(text);
