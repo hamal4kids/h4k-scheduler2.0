@@ -29,10 +29,10 @@
     @apply bg-white rounded-2xl p-6 shadow-sm;
   }
   .tab-active {
-    @apply bg-h4k-primary text-white font-fredoka;
+    @apply bg-h4k-primary text-white font-rubik font-semibold;
   }
   .tab-inactive {
-    @apply bg-white text-h4k-primary font-fredoka hover:bg-h4k-primary hover:text-white;
+    @apply bg-white text-h4k-primary font-rubik font-semibold hover:bg-h4k-primary hover:text-white;
   }
   .badge {
     @apply inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold;

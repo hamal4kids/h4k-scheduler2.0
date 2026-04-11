@@ -13,7 +13,7 @@ export default function Header({ lastSync, onRefresh, loading }) {
             onClick={onRefresh}
             disabled={loading}
             className="bg-white/20 hover:bg-white/30 text-white rounded-pill px-5 py-2
-                       font-fredoka text-base transition-all flex items-center gap-2"
+                       font-rubik font-semibold text-base transition-all flex items-center gap-2"
           >
             <span className={loading ? 'animate-spin inline-block' : ''}>🔄</span>
             רענן

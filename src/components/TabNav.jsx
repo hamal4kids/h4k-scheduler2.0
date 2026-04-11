@@ -13,7 +13,7 @@ export default function TabNav({ active, onChange, counts }) {
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-pill text-base font-fredoka transition-all
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-pill text-base transition-all
               ${active === tab.id ? 'tab-active' : 'tab-inactive'}`}
           >
             <span>{tab.emoji}</span>
