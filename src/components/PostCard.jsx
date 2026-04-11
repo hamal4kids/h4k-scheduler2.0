@@ -1,3 +1,16 @@
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+
+function renderContent(text) {
+  if (!text) return <span className="text-gray-400 italic text-base">אין תוכן</span>;
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, i) =>
+    URL_REGEX.test(part)
+      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+           className="text-h4k-primary underline break-all">{part}</a>
+      : part
+  );
+}
+
 function formatDate(str) {
   if (!str) return '';
   try {
@@ -31,8 +44,8 @@ export default function PostCard({ post, groups, onSchedule, onCancel, onDelete 
       )}
 
       {/* Content */}
-      <p className="font-varela text-lg text-h4k-dark leading-relaxed whitespace-pre-wrap">
-        {post.content || <span className="text-gray-400 italic text-base">אין תוכן</span>}
+      <p className="font-varela text-lg text-h4k-dark leading-relaxed whitespace-pre-wrap break-words min-w-0">
+        {renderContent(post.content)}
       </p>
 
       {/* Meta */}
