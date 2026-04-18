@@ -1,55 +1,42 @@
 import { useState } from 'react';
 import { N8N_WEBHOOK_URL } from '../config';
 
-export default function GroupsTab({ groups, onRefresh }) {
-  const [saving, setSaving] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', beacon_chat_id: '', type: 'general' });
-  const [adding, setAdding] = useState(false);
+const INPUT_CLS = 'border-2 border-h4k-primary rounded-xl px-3 py-1.5 font-assistant text-sm outline-none focus:ring-2 focus:ring-h4k-highlight w-full';
 
-  async function toggleActive(group) {
-    setSaving(group.id);
-    const newVal = group.active === 'TRUE' ? 'FALSE' : 'TRUE';
-    try {
-      await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'update',
-          sheet: 'groups',
-          id: group.id,
-          fields: { active: newVal },
-        }),
-      });
-      onRefresh();
-    } catch {
-      alert('שגיאה בעדכון הקבוצה');
-    } finally {
-      setSaving(null);
-    }
-  }
+async function postWebhook(body) {
+  const res = await fetch(N8N_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+export default function GroupsTab({ groups, onRefresh }) {
+  const [showForm, setShowForm]   = useState(false);
+  const [form, setForm]           = useState({ name: '', beacon_chat_id: '', tags: '' });
+  const [adding, setAdding]       = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm]   = useState({});
+  const [saving, setSaving]       = useState(false);
+  const [toggling, setToggling]   = useState(null);
 
   async function handleAddGroup(e) {
     e.preventDefault();
     if (!form.name.trim() || !form.beacon_chat_id.trim()) return;
     setAdding(true);
     try {
-      await fetch(N8N_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'append',
-          sheet: 'groups',
-          fields: {
-            id: `g_${Date.now()}`,
-            name: form.name.trim(),
-            beacon_chat_id: form.beacon_chat_id.trim(),
-            type: form.type,
-            active: 'TRUE',
-          },
-        }),
+      await postWebhook({
+        action: 'append-group',
+        fields: {
+          id: `g_${Date.now()}`,
+          name: form.name.trim(),
+          beacon_chat_id: form.beacon_chat_id.trim(),
+          active: 'TRUE',
+          tags: form.tags.trim(),
+        },
       });
-      setForm({ name: '', beacon_chat_id: '', type: 'general' });
+      setForm({ name: '', beacon_chat_id: '', tags: '' });
       setShowForm(false);
       onRefresh();
     } catch {
@@ -59,32 +46,46 @@ export default function GroupsTab({ groups, onRefresh }) {
     }
   }
 
-  const general    = groups.filter(g => g.type === 'general'    && g.active !== 'DELETED');
-  const specialized = groups.filter(g => g.type === 'specialized' && g.active !== 'DELETED');
+  async function toggleActive(group) {
+    setToggling(group.id);
+    try {
+      await postWebhook({
+        action: 'update-group',
+        id: group.id,
+        fields: { active: group.active === 'TRUE' ? 'FALSE' : 'TRUE' },
+      });
+      onRefresh();
+    } catch {
+      alert('שגיאה בעדכון הקבוצה');
+    } finally {
+      setToggling(null);
+    }
+  }
 
-  function GroupCard({ group }) {
-    const isActive = group.active === 'TRUE';
-    return (
-      <div className="h4k-card flex items-center justify-between gap-4">
-        <div className="flex flex-col gap-1 min-w-0">
-          <span className="font-varela text-base text-h4k-dark">{group.name}</span>
-          {group.beacon_chat_id && (
-            <span className="font-assistant text-xs text-gray-400 truncate">
-              {group.beacon_chat_id}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={() => toggleActive(group)}
-          disabled={saving === group.id}
-          className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0
-            ${isActive ? 'bg-h4k-secondary' : 'bg-gray-300'}`}
-        >
-          <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all
-            ${isActive ? 'right-0.5' : 'left-0.5'}`} />
-        </button>
-      </div>
-    );
+  function startEdit(group) {
+    setEditingId(group.id);
+    setEditForm({ name: group.name, beacon_chat_id: group.beacon_chat_id, tags: group.tags || '' });
+  }
+
+  async function handleSaveEdit(id) {
+    setSaving(true);
+    try {
+      await postWebhook({
+        action: 'update-group',
+        id,
+        fields: {
+          name: editForm.name.trim(),
+          beacon_chat_id: editForm.beacon_chat_id.trim(),
+          tags: editForm.tags.trim(),
+        },
+      });
+      setEditingId(null);
+      onRefresh();
+    } catch {
+      alert('שגיאה בשמירת הקבוצה');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -103,75 +104,111 @@ export default function GroupsTab({ groups, onRefresh }) {
 
           <div className="flex flex-col gap-1">
             <label className="font-varela text-sm text-h4k-dark">שם הקבוצה</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="למשל: הורים ת׳א צפון"
-              className="border-2 border-h4k-primary rounded-xl px-4 py-2.5 font-assistant text-sm outline-none focus:ring-2 focus:ring-h4k-highlight"
-              required
-            />
+            <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              placeholder="למשל: הורים ת׳א צפון" className={INPUT_CLS} required />
           </div>
 
           <div className="flex flex-col gap-1">
             <label className="font-varela text-sm text-h4k-dark">WhatsApp Group ID</label>
-            <input
-              type="text"
-              value={form.beacon_chat_id}
-              onChange={e => setForm(f => ({ ...f, beacon_chat_id: e.target.value }))}
-              placeholder="120363XXXXXXXXXX@g.us"
-              className="border-2 border-h4k-primary rounded-xl px-4 py-2.5 font-assistant text-sm outline-none focus:ring-2 focus:ring-h4k-highlight"
-              dir="ltr"
-              required
-            />
+            <input type="text" value={form.beacon_chat_id} onChange={e => setForm(f => ({ ...f, beacon_chat_id: e.target.value }))}
+              placeholder="120363XXXXXXXXXX@g.us" className={INPUT_CLS} dir="ltr" required />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="font-varela text-sm text-h4k-dark">סוג</label>
-            <select
-              value={form.type}
-              onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-              className="border-2 border-h4k-primary rounded-xl px-4 py-2.5 font-assistant text-sm outline-none"
-            >
-              <option value="general">כללי — מקבל את כל הפוסטים</option>
-              <option value="specialized">מתמחה — בחירה ידנית בכל פוסט</option>
-            </select>
+            <label className="font-varela text-sm text-h4k-dark">🏷️ תגיות (מופרדות בפסיק)</label>
+            <input type="text" value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
+              placeholder="למשל: ירושלים,כללי" className={INPUT_CLS} />
           </div>
 
           <button type="submit" disabled={adding} className="btn-primary self-start">
-            <span>{adding ? '⏳' : '✅'}</span>
-            {adding ? 'שומר...' : 'הוסף קבוצה'}
+            <span>{adding ? '⏳' : '✅'}</span> {adding ? 'שומר...' : 'הוסף קבוצה'}
           </button>
         </form>
       )}
 
-      {/* General Groups */}
-      {general.length > 0 && (
-        <section>
-          <h3 className="font-varela text-h4k-primary text-sm mb-3 flex items-center gap-2">
-            <span className="bg-h4k-highlight px-2 py-0.5 rounded text-h4k-dark">קבוצות כלליות</span>
-            <span className="text-gray-400">— מקבלות את כל הפוסטים</span>
-          </h3>
-          <div className="flex flex-col gap-3">
-            {general.map(g => <GroupCard key={g.id} group={g} />)}
-          </div>
-        </section>
-      )}
+      {/* Groups Table */}
+      {groups.length > 0 ? (
+        <div className="overflow-x-auto rounded-2xl border border-gray-200">
+          <table className="w-full text-sm font-assistant">
+            <thead className="bg-h4k-bg text-h4k-dark">
+              <tr>
+                <th className="text-right px-4 py-3 font-varela">שם</th>
+                <th className="text-right px-4 py-3 font-varela">תגיות</th>
+                <th className="text-right px-4 py-3 font-varela">Group ID</th>
+                <th className="text-right px-4 py-3 font-varela">פעילה</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((g, i) => {
+                const isEditing = editingId === g.id;
+                const tags = (g.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+                return (
+                  <tr key={g.id} className={`border-t border-gray-100 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
 
-      {/* Specialized Groups */}
-      {specialized.length > 0 && (
-        <section>
-          <h3 className="font-varela text-h4k-primary text-sm mb-3 flex items-center gap-2">
-            <span className="bg-h4k-highlight px-2 py-0.5 rounded text-h4k-dark">קבוצות מתמחות</span>
-            <span className="text-gray-400">— בחירה ידנית בכל פוסט</span>
-          </h3>
-          <div className="flex flex-col gap-3">
-            {specialized.map(g => <GroupCard key={g.id} group={g} />)}
-          </div>
-        </section>
-      )}
+                    {/* Name */}
+                    <td className="px-4 py-3">
+                      {isEditing
+                        ? <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className={INPUT_CLS} />
+                        : <span className="text-h4k-dark font-medium">{g.name}</span>
+                      }
+                    </td>
 
-      {groups.length === 0 && !showForm && (
+                    {/* Tags */}
+                    <td className="px-4 py-3">
+                      {isEditing
+                        ? <input value={editForm.tags} onChange={e => setEditForm(f => ({ ...f, tags: e.target.value }))}
+                            placeholder="ירושלים,כללי" className={INPUT_CLS} />
+                        : tags.length > 0
+                          ? <div className="flex flex-wrap gap-1">
+                              {tags.map(tag => (
+                                <span key={tag} className="bg-h4k-highlight text-h4k-dark text-xs px-2 py-0.5 rounded-full">{tag}</span>
+                              ))}
+                            </div>
+                          : <span className="text-gray-400 text-xs">ללא תגית</span>
+                      }
+                    </td>
+
+                    {/* Beacon Chat ID */}
+                    <td className="px-4 py-3">
+                      {isEditing
+                        ? <input value={editForm.beacon_chat_id} onChange={e => setEditForm(f => ({ ...f, beacon_chat_id: e.target.value }))}
+                            className={INPUT_CLS} dir="ltr" />
+                        : <span className="text-gray-400 text-xs font-mono">{g.beacon_chat_id || '—'}</span>
+                      }
+                    </td>
+
+                    {/* Active Toggle */}
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => toggleActive(g)}
+                        disabled={toggling === g.id}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${g.active === 'TRUE' ? 'bg-h4k-secondary' : 'bg-gray-300'}`}
+                      >
+                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${g.active === 'TRUE' ? 'right-0.5' : 'left-0.5'}`} />
+                      </button>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-3 text-left whitespace-nowrap">
+                      {isEditing ? (
+                        <div className="flex gap-2">
+                          <button onClick={() => handleSaveEdit(g.id)} disabled={saving} className="btn-primary py-1 px-3 text-xs">
+                            {saving ? '⏳' : '✅'} שמור
+                          </button>
+                          <button onClick={() => setEditingId(null)} className="btn-ghost py-1 px-3 text-xs">ביטול</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => startEdit(g)} className="btn-ghost py-1 px-3 text-xs">✏️ ערוך</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : !showForm && (
         <div className="text-center py-20">
           <div className="text-5xl mb-3">👥</div>
           <p className="font-varela text-gray-500">אין קבוצות — לחצי על "הוסף קבוצה"</p>

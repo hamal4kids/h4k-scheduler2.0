@@ -1,13 +1,26 @@
-const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 function renderContent(text) {
   if (!text) return <span className="text-gray-400 italic text-base">אין תוכן</span>;
-  const parts = text.split(URL_REGEX);
-  return parts.map((part, i) =>
-    URL_REGEX.test(part)
-      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer"
-           className="text-h4k-primary underline break-all">{part}</a>
-      : part
+  return (
+    <ReactMarkdown
+      components={{
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-h4k-primary underline break-all"
+          >
+            {children}
+          </a>
+        ),
+        p: ({ children }) => <span>{children}</span>,
+      }}
+    >
+      {text}
+    </ReactMarkdown>
   );
 }
 
@@ -22,6 +35,8 @@ function formatDate(str) {
 }
 
 export default function PostCard({ post, groups, onSchedule, onCancel, onDelete }) {
+  const [expanded, setExpanded] = useState(false);
+
   const groupLabel = (ids) => {
     if (!ids || ids === 'ALL') return 'כל הקבוצות';
     return ids.split(',').map(id => {
@@ -31,22 +46,51 @@ export default function PostCard({ post, groups, onSchedule, onCancel, onDelete 
   };
 
   return (
-    <div className="h4k-card flex flex-col gap-4">
+    <div className="h4k-card flex flex-col gap-3">
 
       {/* Image */}
       {post.media_url && (
         <img
           src={post.media_url}
-          alt=""
+          alt="תמונה מצורפת"
           className="w-full rounded-2xl object-cover aspect-square"
           loading="lazy"
         />
       )}
 
-      {/* Content */}
-      <p className="font-varela text-lg text-h4k-dark leading-relaxed whitespace-pre-wrap break-words min-w-0">
-        {renderContent(post.content)}
-      </p>
+      {/* Actions — directly under image */}
+      <div className="flex gap-2 flex-wrap">
+        {onSchedule && (
+          <button onClick={() => onSchedule(post)} className="btn-primary">
+            <span>🕐</span> תזמן
+          </button>
+        )}
+        {onCancel && (
+          <button onClick={() => onCancel(post)} className="btn-ghost">
+            <span>↩️</span> בטל תזמון
+          </button>
+        )}
+        {onDelete && (
+          <button onClick={() => onDelete(post)} className="btn-ghost" style={{color:'#ef4444', borderColor:'#fca5a5'}}>
+            <span>🗑️</span> מחק
+          </button>
+        )}
+      </div>
+
+      {/* Content — 3-line truncation with expand toggle */}
+      <div className="font-varela text-base text-h4k-dark leading-relaxed break-words min-w-0">
+        <div className={expanded ? '' : 'line-clamp-3'}>
+          {renderContent(post.content)}
+        </div>
+        {post.content && post.content.length > 120 && (
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="text-h4k-primary font-assistant text-sm mt-1 hover:underline"
+          >
+            {expanded ? 'פחות ▲' : 'קרא עוד ▼'}
+          </button>
+        )}
+      </div>
 
       {/* Meta */}
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -68,24 +112,6 @@ export default function PostCard({ post, groups, onSchedule, onCancel, onDelete 
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-2 flex-wrap mt-1">
-        {onSchedule && (
-          <button onClick={() => onSchedule(post)} className="btn-primary">
-            <span>🕐</span> תזמן
-          </button>
-        )}
-        {onCancel && (
-          <button onClick={() => onCancel(post)} className="btn-ghost">
-            <span>↩️</span> בטל תזמון
-          </button>
-        )}
-        {onDelete && (
-          <button onClick={() => onDelete(post)} className="btn-ghost" style={{color:'#ef4444', borderColor:'#fca5a5'}}>
-            <span>🗑️</span> מחק
-          </button>
-        )}
-      </div>
     </div>
   );
 }

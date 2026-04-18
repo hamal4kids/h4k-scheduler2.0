@@ -1,0 +1,234 @@
+{
+  "name": "H4K — Flow A: Ingest WA → Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "events": [
+          "GroupMessageReceived"
+        ]
+      },
+      "id": "node-01",
+      "name": "Watch Source Group",
+      "type": "@beacon/n8n-nodes-beacon.beaconTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "webhookId": "h4k-ingest-beacon",
+      "credentials": {
+        "beaconOAuth2Api": {
+          "id": "yIr6Y57FPeQY3uDj",
+          "name": "Beacon account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.data.chatId }}",
+              "rightValue": "120363187571838264@g.us",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "node-02",
+      "name": "Is Source Group?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.data.hasMedia }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ]
+        }
+      },
+      "id": "node-03",
+      "name": "Has Media?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, -100]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getMedia",
+        "mediaId": "={{ $json.data.media.mediaId }}"
+      },
+      "id": "node-04",
+      "name": "Get Media from Beacon",
+      "type": "@beacon/n8n-nodes-beacon.beacon",
+      "typeVersion": 1,
+      "position": [660, -220],
+      "credentials": {
+        "beaconOAuth2Api": {
+          "id": "yIr6Y57FPeQY3uDj",
+          "name": "Beacon account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudinary.com/v1_1/dpu4rviqw/auto/upload",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "upload_preset",
+              "value": "h4k_upload"
+            },
+            {
+              "name": "tags",
+              "value": "h4k_temp"
+            },
+            {
+              "name": "folder",
+              "value": "h4k"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-05",
+      "name": "Upload to Cloudinary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, -220]
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $('Has Media?').item.json.data;\nconst cl = $input.item.json;\nconst id = new Date(msg.timestamp).toISOString();\nreturn {\n  json: {\n    id,\n    content: msg.body || msg.caption || '',\n    media_url: cl.secure_url || '',\n    cloudinary_id: cl.public_id || '',\n    scheduled_at: '',\n    status: 'inbox',\n    target_groups: 'ALL',\n    sent_at: ''\n  }\n};"
+      },
+      "id": "node-06",
+      "name": "Prepare Row — With Media",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, -220]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "12WESjeS-G5yitJIPehxnjs3dvjBdHmb0R-vtvSu0W-8",
+          "mode": "list",
+          "cachedResultName": "H4K Scheduler"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "posts",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "node-07",
+      "name": "Add to Inbox — With Media",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1320, -220],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RwpCsVxFxaEUhZTz",
+          "name": "H4K"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.item.json.data;\nconst id = new Date(d.timestamp).toISOString();\nreturn {\n  json: {\n    id,\n    content: d.body || '',\n    media_url: '',\n    cloudinary_id: '',\n    scheduled_at: '',\n    status: 'inbox',\n    target_groups: 'ALL',\n    sent_at: ''\n  }\n};"
+      },
+      "id": "node-08",
+      "name": "Prepare Row — Text Only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 60]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "12WESjeS-G5yitJIPehxnjs3dvjBdHmb0R-vtvSu0W-8",
+          "mode": "list",
+          "cachedResultName": "H4K Scheduler"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "posts",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "node-09",
+      "name": "Add to Inbox — Text Only",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [880, 60],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RwpCsVxFxaEUhZTz",
+          "name": "H4K"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Watch Source Group": {
+      "main": [[{ "node": "Is Source Group?", "type": "main", "index": 0 }]]
+    },
+    "Is Source Group?": {
+      "main": [
+        [{ "node": "Has Media?", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Has Media?": {
+      "main": [
+        [{ "node": "Get Media from Beacon", "type": "main", "index": 0 }],
+        [{ "node": "Prepare Row — Text Only", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Media from Beacon": {
+      "main": [[{ "node": "Upload to Cloudinary", "type": "main", "index": 0 }]]
+    },
+    "Upload to Cloudinary": {
+      "main": [[{ "node": "Prepare Row — With Media", "type": "main", "index": 0 }]]
+    },
+    "Prepare Row — With Media": {
+      "main": [[{ "node": "Add to Inbox — With Media", "type": "main", "index": 0 }]]
+    },
+    "Prepare Row — Text Only": {
+      "main": [[{ "node": "Add to Inbox — Text Only", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

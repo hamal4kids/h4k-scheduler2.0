@@ -16,8 +16,7 @@ export default function ScheduledTab({ posts, groups, onRefresh }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'update',
-          sheet: 'posts',
+          action: 'update-post',
           id: post.id,
           fields: { status: 'inbox', scheduled_at: '', target_groups: '' },
         }),

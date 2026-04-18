@@ -6,33 +6,60 @@ export default function ScheduleModal({ post, groups, onClose, onDone }) {
   now.setMinutes(now.getMinutes() + 30);
   const defaultDT = now.toISOString().slice(0, 16);
 
-  const [scheduledAt, setScheduledAt] = useState(defaultDT);
-  const [allGroups, setAllGroups]     = useState(true);
-  const [selected, setSelected]       = useState([]);
-  const [saving, setSaving]           = useState(false);
-  const [err, setErr]                 = useState(null);
+  const [scheduledAt, setScheduledAt]     = useState(defaultDT);
+  const [allGroups, setAllGroups]         = useState(true);
+  const [selectedTags, setSelectedTags]   = useState([]);
+  const [selectedIds, setSelectedIds]     = useState([]);
+  const [saving, setSaving]               = useState(false);
+  const [err, setErr]                     = useState(null);
 
   const activeGroups = groups.filter(g => g.active === 'TRUE');
 
-  function toggleGroup(id) {
-    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  // Unique tags from all active groups
+  const allTags = [...new Set(
+    activeGroups.flatMap(g => (g.tags || '').split(',').map(t => t.trim()).filter(Boolean))
+  )].sort();
+
+  // Groups with no tags — must be picked individually
+  const untaggedGroups = activeGroups.filter(g => !(g.tags || '').trim());
+
+  // Groups covered by currently selected tags
+  const coveredByTags = new Set(
+    activeGroups
+      .filter(g => selectedTags.some(tag =>
+        (g.tags || '').split(',').map(t => t.trim()).includes(tag)
+      ))
+      .map(g => g.id)
+  );
+
+  function toggleTag(tag) {
+    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  }
+
+  function toggleId(id) {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   }
 
   async function handleConfirm() {
     if (!scheduledAt) { setErr('יש לבחור תאריך ושעה'); return; }
-    if (!allGroups && selected.length === 0) { setErr('יש לבחור לפחות קבוצה אחת'); return; }
+    if (!allGroups && selectedTags.length === 0 && selectedIds.length === 0) {
+      setErr('יש לבחור לפחות תגית או קבוצה אחת');
+      return;
+    }
 
     setSaving(true);
     setErr(null);
-    const target_groups = allGroups ? 'ALL' : selected.join(',');
+
+    const target_groups = allGroups
+      ? 'ALL'
+      : [...selectedTags, ...selectedIds].join(',');
 
     try {
       const res = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'update',
-          sheet: 'posts',
+          action: 'update-post',
           id: post.id,
           fields: {
             status: 'scheduled',
@@ -47,7 +74,7 @@ export default function ScheduleModal({ post, groups, onClose, onDone }) {
       } else {
         setErr('שגיאה בשמירה: ' + (data.error || 'לא ידוע'));
       }
-    } catch (e) {
+    } catch {
       setErr('שגיאה בחיבור לשרת');
     } finally {
       setSaving(false);
@@ -56,7 +83,8 @@ export default function ScheduleModal({ post, groups, onClose, onDone }) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="h4k-card w-full max-w-md flex flex-col gap-5" onClick={e => e.stopPropagation()}>
+      <div className="h4k-card w-full max-w-md flex flex-col gap-5 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+
         {/* Title */}
         <div className="flex items-center justify-between">
           <h2 className="font-fredoka text-h4k-primary text-2xl">תזמון פוסט</h2>
@@ -81,9 +109,11 @@ export default function ScheduleModal({ post, groups, onClose, onDone }) {
           />
         </div>
 
-        {/* Groups */}
-        <div className="flex flex-col gap-2">
+        {/* Target */}
+        <div className="flex flex-col gap-3">
           <label className="font-varela text-sm text-h4k-dark">👥 קבוצות יעד</label>
+
+          {/* All groups toggle */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -93,22 +123,57 @@ export default function ScheduleModal({ post, groups, onClose, onDone }) {
             />
             <span className="font-assistant text-sm">כל הקבוצות הפעילות</span>
           </label>
+
           {!allGroups && (
-            <div className="flex flex-col gap-1.5 pr-2 mt-1 max-h-36 overflow-y-auto">
-              {activeGroups.map(g => (
-                <label key={g.id} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(g.id)}
-                    onChange={() => toggleGroup(g.id)}
-                    className="accent-h4k-primary w-4 h-4"
-                  />
-                  <span className="font-assistant text-sm">{g.name}</span>
-                  {g.type === 'specialized' && (
-                    <span className="text-xs bg-h4k-highlight/30 text-h4k-dark px-1.5 rounded">מתמחה</span>
-                  )}
-                </label>
-              ))}
+            <div className="flex flex-col gap-3 pr-1">
+
+              {/* Tags */}
+              {allTags.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-assistant text-xs text-gray-500">לפי תגית</span>
+                  <div className="flex flex-wrap gap-2">
+                    {allTags.map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleTag(tag)}
+                        className={`px-3 py-1 rounded-full font-assistant text-sm border-2 transition-colors
+                          ${selectedTags.includes(tag)
+                            ? 'bg-h4k-primary text-white border-h4k-primary'
+                            : 'bg-white text-h4k-dark border-h4k-primary/40 hover:border-h4k-primary'
+                          }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Individual groups */}
+              {activeGroups.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-assistant text-xs text-gray-500">קבוצה ספציפית</span>
+                  <div className="flex flex-col gap-1.5">
+                    {activeGroups.map(g => {
+                      const covered = coveredByTags.has(g.id);
+                      return (
+                        <label key={g.id} className={`flex items-center gap-2 cursor-pointer ${covered ? 'opacity-50' : ''}`}>
+                          <input
+                            type="checkbox"
+                            checked={covered || selectedIds.includes(g.id)}
+                            disabled={covered}
+                            onChange={() => toggleId(g.id)}
+                            className="accent-h4k-primary w-4 h-4"
+                          />
+                          <span className="font-assistant text-sm">{g.name}</span>
+                          {covered && <span className="font-assistant text-xs text-gray-400">(מכוסה ע״י תגית)</span>}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

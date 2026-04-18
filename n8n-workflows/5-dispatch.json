@@ -1,0 +1,244 @@
+{
+  "name": "H4K — Flow B: Dispatcher (every 30 min)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "*/30 * * * *" }
+          ]
+        }
+      },
+      "id": "node-01",
+      "name": "Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "12WESjeS-G5yitJIPehxnjs3dvjBdHmb0R-vtvSu0W-8",
+          "mode": "list",
+          "cachedResultName": "H4K Scheduler"
+        },
+        "sheetName": { "__rl": true, "value": "posts", "mode": "name" },
+        "options": {}
+      },
+      "id": "node-02",
+      "name": "Read All Posts",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [220, -100],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "RwpCsVxFxaEUhZTz", "name": "H4K" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "12WESjeS-G5yitJIPehxnjs3dvjBdHmb0R-vtvSu0W-8",
+          "mode": "list",
+          "cachedResultName": "H4K Scheduler"
+        },
+        "sheetName": { "__rl": true, "value": "groups", "mode": "name" },
+        "options": {}
+      },
+      "id": "node-03",
+      "name": "Read All Groups",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [220, 100],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "RwpCsVxFxaEUhZTz", "name": "H4K" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "output": "input1"
+      },
+      "id": "node-04",
+      "name": "Wait for Both",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const posts  = $('Read All Posts').all().map(i => i.json);\nconst groups = $('Read All Groups').all().map(i => i.json);\nconst now = new Date();\n\nconst duePosts = posts.filter(p =>\n  p.status === 'scheduled' &&\n  p.scheduled_at &&\n  new Date(p.scheduled_at) <= now\n);\n\nif (duePosts.length === 0) return [];\n\nconst activeGroups = groups.filter(g => g.active === 'TRUE');\n\nconst items = [];\nfor (const post of duePosts) {\n  let targetGroups;\n  if (!post.target_groups || post.target_groups === 'ALL') {\n    targetGroups = activeGroups;\n  } else {\n    const tokens = post.target_groups.split(',').map(s => s.trim()).filter(Boolean);\n    const resolved = new Set();\n    for (const token of tokens) {\n      const direct = activeGroups.find(g => g.id === token);\n      if (direct) {\n        resolved.add(direct.id);\n      } else {\n        activeGroups\n          .filter(g => (g.tags || '').split(',').map(t => t.trim()).includes(token))\n          .forEach(g => resolved.add(g.id));\n      }\n    }\n    targetGroups = activeGroups.filter(g => resolved.has(g.id));\n  }\n\n  for (const group of targetGroups) {\n    items.push({ json: {\n      post_id:        post.id,\n      post_content:   post.content,\n      post_media_url: post.media_url || '',\n      group_id:       group.id,\n      beacon_chat_id: group.beacon_chat_id\n    }});\n  }\n}\nreturn items;"
+      },
+      "id": "node-05",
+      "name": "Find Due Posts × Groups",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ]
+        }
+      },
+      "id": "node-06",
+      "name": "Any Posts Due?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": { "options": {} },
+      "id": "node-07",
+      "name": "Loop Post+Group Pairs",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1100, -100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.post_media_url }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ]
+        }
+      },
+      "id": "node-12",
+      "name": "Has Media?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, -100]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendImage",
+        "chatId": "={{ $json.beacon_chat_id }}",
+        "imageUrl": "={{ $json.post_media_url }}",
+        "caption": "={{ $json.post_content }}"
+      },
+      "id": "node-13",
+      "name": "Send Image via Beacon",
+      "type": "@beacon/n8n-nodes-beacon.beacon",
+      "typeVersion": 1,
+      "position": [1540, -220],
+      "credentials": {
+        "beaconOAuth2Api": { "id": "yIr6Y57FPeQY3uDj", "name": "Beacon account 3" }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.beacon_chat_id }}",
+        "message": "={{ $json.post_content }}"
+      },
+      "id": "node-08",
+      "name": "Send Text via Beacon",
+      "type": "@beacon/n8n-nodes-beacon.beacon",
+      "typeVersion": 1,
+      "position": [1540, 0],
+      "credentials": {
+        "beaconOAuth2Api": { "id": "yIr6Y57FPeQY3uDj", "name": "Beacon account 3" }
+      }
+    },
+    {
+      "parameters": {
+        "unit": "seconds",
+        "resume": "timeInterval",
+        "amount": 2
+      },
+      "id": "node-09",
+      "name": "Wait 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1760, -100],
+      "webhookId": "h4k-dispatcher-wait"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sentIds = [...new Set($('Find Due Posts × Groups').all().map(i => i.json.post_id))];\nconst now = new Date().toISOString().replace('T', ' ').slice(0, 19);\nreturn sentIds.map(id => ({ json: { id, status: 'sent', sent_at: now } }));"
+      },
+      "id": "node-10",
+      "name": "Collect Sent Post IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 100]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12WESjeS-G5yitJIPehxnjs3dvjBdHmb0R-vtvSu0W-8",
+          "mode": "list",
+          "cachedResultName": "H4K Scheduler"
+        },
+        "sheetName": { "__rl": true, "value": "posts", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": ["id"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "node-11",
+      "name": "Mark Posts as Sent",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1320, 100],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "RwpCsVxFxaEUhZTz", "name": "H4K" }
+      }
+    }
+  ],
+  "connections": {
+    "Every 30 Minutes": {
+      "main": [[
+        { "node": "Read All Posts",  "type": "main", "index": 0 },
+        { "node": "Read All Groups", "type": "main", "index": 0 }
+      ]]
+    },
+    "Read All Posts":  { "main": [[{ "node": "Wait for Both", "type": "main", "index": 0 }]] },
+    "Read All Groups": { "main": [[{ "node": "Wait for Both", "type": "main", "index": 1 }]] },
+    "Wait for Both":   { "main": [[{ "node": "Find Due Posts × Groups", "type": "main", "index": 0 }]] },
+    "Find Due Posts × Groups": { "main": [[{ "node": "Any Posts Due?", "type": "main", "index": 0 }]] },
+    "Any Posts Due?": {
+      "main": [
+        [{ "node": "Loop Post+Group Pairs", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Loop Post+Group Pairs": {
+      "main": [
+        [{ "node": "Has Media?",             "type": "main", "index": 0 }],
+        [{ "node": "Collect Sent Post IDs",  "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Media?": {
+      "main": [
+        [{ "node": "Send Image via Beacon", "type": "main", "index": 0 }],
+        [{ "node": "Send Text via Beacon",  "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Image via Beacon": { "main": [[{ "node": "Wait 2s", "type": "main", "index": 0 }]] },
+    "Send Text via Beacon":  { "main": [[{ "node": "Wait 2s", "type": "main", "index": 0 }]] },
+    "Wait 2s": { "main": [[{ "node": "Loop Post+Group Pairs", "type": "main", "index": 0 }]] },
+    "Collect Sent Post IDs": { "main": [[{ "node": "Mark Posts as Sent", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

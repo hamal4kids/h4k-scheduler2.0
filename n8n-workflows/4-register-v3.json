@@ -1,0 +1,184 @@
+{
+  "name": "H4K — UI Webhook (Update Sheet) v3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "h4k-update",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "name": "Receive from UI",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "h4k-update-sheet"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const b = $input.item.json.body ?? $input.item.json;\nconst f = b.fields ?? {};\nreturn {\n  json: {\n    action:         b.action         ?? '',\n    id:             b.id             ?? '',\n    name:           f.name           ?? '',\n    beacon_chat_id: f.beacon_chat_id ?? '',\n    tags:           f.tags           ?? '',\n    status:         f.status         ?? '',\n    scheduled_at:   f.scheduled_at   ?? '',\n    target_groups:  f.target_groups  ?? '',\n    active:         f.active         ?? '',\n    content:        f.content        ?? '',\n    media_url:      f.media_url      ?? ''\n  }\n};"
+      },
+      "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "name": "Flatten Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "update-post",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ]
+        }
+      },
+      "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+      "name": "Not update-post?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12WESjeS-G5yitJIPehxnjs3dvjBdHmb0R-vtvSu0W-8",
+          "mode": "list",
+          "cachedResultName": "H4K Scheduler"
+        },
+        "sheetName": { "__rl": true, "value": "posts", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": ["id"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+      "name": "Update Posts Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [660, 120],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "RwpCsVxFxaEUhZTz", "name": "H4K" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "append-group",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ]
+        }
+      },
+      "id": "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
+      "name": "Not append-group?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, -120]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "12WESjeS-G5yitJIPehxnjs3dvjBdHmb0R-vtvSu0W-8",
+          "mode": "list",
+          "cachedResultName": "H4K Scheduler"
+        },
+        "sheetName": { "__rl": true, "value": "groups", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c",
+      "name": "Append New Group",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [880, -240],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "RwpCsVxFxaEUhZTz", "name": "H4K" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "12WESjeS-G5yitJIPehxnjs3dvjBdHmb0R-vtvSu0W-8",
+          "mode": "list",
+          "cachedResultName": "H4K Scheduler"
+        },
+        "sheetName": { "__rl": true, "value": "groups", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": ["id"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
+      "name": "Update Groups Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [880, 0],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "RwpCsVxFxaEUhZTz", "name": "H4K" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\": true}",
+        "options": {}
+      },
+      "id": "b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1100, -60]
+    }
+  ],
+  "connections": {
+    "Receive from UI": {
+      "main": [[{ "node": "Flatten Fields", "type": "main", "index": 0 }]]
+    },
+    "Flatten Fields": {
+      "main": [[{ "node": "Not update-post?", "type": "main", "index": 0 }]]
+    },
+    "Not update-post?": {
+      "main": [
+        [{ "node": "Not append-group?",  "type": "main", "index": 0 }],
+        [{ "node": "Update Posts Sheet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Not append-group?": {
+      "main": [
+        [{ "node": "Update Groups Sheet", "type": "main", "index": 0 }],
+        [{ "node": "Append New Group",    "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Posts Sheet":  { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] },
+    "Append New Group":    { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] },
+    "Update Groups Sheet": { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
