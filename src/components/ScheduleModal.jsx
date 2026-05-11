@@ -62,14 +62,9 @@ export default function ScheduleModal({ post, groups, onClose, onDone }) {
           action: 'update-post',
           id: post.id,
           fields: {
-            id: post.id,
-            content: post.content,
-            media_url: post.media_url,
-            cloudinary_id: post.cloudinary_id,
             status: 'scheduled',
             scheduled_at: scheduledAt.replace('T', ' ') + ':00',
             target_groups,
-            sent_at: '',
           },
         }),
       });
