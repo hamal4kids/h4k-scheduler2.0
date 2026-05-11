@@ -18,7 +18,16 @@ export default function ScheduledTab({ posts, groups, onRefresh }) {
         body: JSON.stringify({
           action: 'update-post',
           id: post.id,
-          fields: { status: 'inbox', scheduled_at: '', target_groups: '' },
+          fields: {
+            id: post.id,
+            content: post.content,
+            media_url: post.media_url,
+            cloudinary_id: post.cloudinary_id,
+            status: 'inbox',
+            scheduled_at: '',
+            target_groups: '',
+            sent_at: '',
+          },
         }),
       });
       onRefresh();
